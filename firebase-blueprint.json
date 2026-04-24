@@ -1,0 +1,161 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "BTech student profile with gamified stats",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "image": { "type": "string" },
+        "btechYear": { "type": "string", "enum": ["FIRST", "SECOND", "THIRD", "FOURTH"] },
+        "branch": { "type": "string" },
+        "lifetimeXp": { "type": "integer" },
+        "balance": { "type": "integer" },
+        "rank": { "type": "string", "enum": ["BEGINNER", "GRINDER", "ELITE", "LEGEND", "UNSTOPPABLE"] },
+        "streak": { "type": "integer" },
+        "lastStudyDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "name", "btechYear", "lifetimeXp", "balance", "rank", "streak", "createdAt"]
+    },
+    "DailyLog": {
+      "title": "DailyLog",
+      "description": "Daily study progress log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "studyHours": { "type": "number" },
+        "targetHours": { "type": "number" },
+        "isTargetMet": { "type": "boolean" },
+        "winBonusClaimed": { "type": "boolean" },
+        "isCompleted": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "date", "studyHours", "targetHours", "isTargetMet", "winBonusClaimed", "isCompleted"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "XP transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "amount": { "type": "integer" },
+        "description": { "type": "string" },
+        "referenceId": { "type": "string" },
+        "referenceType": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "type", "amount", "description", "createdAt"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Academic subject",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "name", "createdAt"]
+    },
+    "Chapter": {
+      "title": "Chapter",
+      "description": "Chapter within a subject",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "name": { "type": "string" },
+        "isLectureDone": { "type": "boolean" },
+        "isDppDone": { "type": "boolean" },
+        "isRefBookDone": { "type": "boolean" },
+        "isPyqDone": { "type": "boolean" },
+        "isCompleted": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "subjectId", "name", "isLectureDone", "isDppDone", "isRefBookDone", "isPyqDone", "isCompleted", "updatedAt"]
+    },
+    "Semester": {
+      "title": "Semester",
+      "description": "Academic semester record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "number": { "type": "integer" },
+        "gpa": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "number", "isActive", "createdAt"]
+    },
+    "SubjectGrade": {
+      "title": "SubjectGrade",
+      "description": "Grade for a subject in a semester",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "semesterId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "credits": { "type": "integer" },
+        "grade": { "type": "string" },
+        "gradePoint": { "type": "number" },
+        "hasBacklog": { "type": "boolean" }
+      },
+      "required": ["id", "semesterId", "subjectName", "credits", "hasBacklog"]
+    },
+    "Certification": {
+      "title": "Certification",
+      "description": "Professional certification",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "provider": { "type": "string" },
+        "url": { "type": "string" },
+        "status": { "type": "string", "enum": ["IN_PROGRESS", "COMPLETED", "DROPPED"] },
+        "xpAwarded": { "type": "boolean" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "provider", "status", "xpAwarded", "createdAt"]
+    },
+    "Internship": {
+      "title": "Internship",
+      "description": "Professional internship",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "type": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["APPLIED", "ONGOING", "COMPLETED", "REJECTED"] },
+        "stipend": { "type": "number" },
+        "xpAwarded": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "company", "role", "type", "status", "xpAwarded", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/dailyLogs/{logId}": { "schema": "DailyLog", "description": "Daily study logs" },
+    "/transactions/{transactionId}": { "schema": "Transaction", "description": "XP transactions" },
+    "/subjects/{subjectId}": { "schema": "Subject", "description": "Academic subjects" },
+    "/chapters/{chapterId}": { "schema": "Chapter", "description": "Subject chapters" },
+    "/semesters/{semesterId}": { "schema": "Semester", "description": "Semester records" },
+    "/subjectGrades/{gradeId}": { "schema": "SubjectGrade", "description": "Grades per subject" },
+    "/certifications/{certId}": { "schema": "Certification", "description": "Certifications" },
+    "/internships/{internshipId}": { "schema": "Internship", "description": "Internships" }
+  }
+}

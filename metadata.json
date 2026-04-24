@@ -1,0 +1,9 @@
+{
+  "name": "BTech Buddies",
+  "description": "A gamified productivity OS for BTech students to track syllabus, GPA, certifications, and internships with AI-powered study assistance.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

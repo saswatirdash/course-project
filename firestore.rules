@@ -1,0 +1,274 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - id: string (required)
+    //   - email: string (required, email format)
+    //   - name: string (required, 2-50 chars)
+    //   - btechYear: string (required, enum: FIRST, SECOND, THIRD, FOURTH)
+    //   - branch: string (optional, 2-50 chars)
+    //   - lifetimeXp: integer (required, >= 0)
+    //   - balance: integer (required, >= 0)
+    //   - rank: string (required, enum: BEGINNER, GRINDER, ELITE, LEGEND, UNSTOPPABLE)
+    //   - streak: integer (required, >= 0)
+    //   - lastStudyDate: string (optional, ISO date-time)
+    //   - createdAt: string (required, ISO date-time)
+    //
+    // Collection: dailyLogs
+    // Document ID: {logId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required, must match owner)
+    //   - date: string (required, YYYY-MM-DD)
+    //   - studyHours: number (required, 0-16)
+    //   - targetHours: number (required, 0-16)
+    //   - isTargetMet: boolean (required)
+    //   - winBonusClaimed: boolean (required)
+    //   - isCompleted: boolean (required)
+    //
+    // [Other collections follow similar patterns...]
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}$");
+    }
+
+    function isValidDateTimeString(dateTimeStr) {
+      return dateTimeStr is string && dateTimeStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isSubjectOwner(subjectId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/subjects/$(subjectId)).data.userId == request.auth.uid;
+    }
+
+    function isSemesterOwner(semesterId) {
+      return isAuthenticated() && get(/databases/$(database)/documents/semesters/$(semesterId)).data.userId == request.auth.uid;
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['id', 'email', 'name', 'btechYear', 'lifetimeXp', 'balance', 'rank', 'streak', 'createdAt']) &&
+             data.id == request.auth.uid &&
+             data.email is string && isValidEmail(data.email) &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 50 &&
+             data.btechYear in ['FIRST', 'SECOND', 'THIRD', 'FOURTH'] &&
+             data.lifetimeXp is int &&
+             data.balance is int &&
+             data.rank in ['BEGINNER', 'GRINDER', 'ELITE', 'LEGEND', 'UNSTOPPABLE'] &&
+             data.streak is int && data.streak >= 0 &&
+             isValidDateTimeString(data.createdAt);
+    }
+
+    function isValidDailyLog(data) {
+      return hasRequiredFields(['userId', 'date', 'studyHours', 'targetHours', 'isTargetMet', 'winBonusClaimed', 'isCompleted']) &&
+             data.userId == request.auth.uid &&
+             isValidDateString(data.date) &&
+             data.studyHours is number && data.studyHours >= 0 && data.studyHours <= 16 &&
+             data.targetHours is number && data.targetHours >= 0 && data.targetHours <= 16 &&
+             data.isTargetMet is bool &&
+             data.winBonusClaimed is bool &&
+             data.isCompleted is bool;
+    }
+
+    function isValidTransaction(data) {
+      return hasRequiredFields(['userId', 'type', 'amount', 'description', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.type in ['STUDY', 'REWARD', 'SHOP', 'PUNISHMENT', 'MASTERY', 'REVOCATION', 'CERTIFICATION', 'INTERNSHIP'] &&
+             data.amount is number &&
+             data.description is string && data.description.size() <= 200 &&
+             isValidDateTimeString(data.createdAt);
+    }
+
+    function isValidSubject(data) {
+      return hasRequiredFields(['userId', 'name', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+             isValidDateTimeString(data.createdAt);
+    }
+
+    function isValidChapter(data) {
+      return hasRequiredFields(['subjectId', 'name', 'isLectureDone', 'isDppDone', 'isRefBookDone', 'isPyqDone', 'isCompleted', 'updatedAt']) &&
+             data.subjectId is string &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+             data.isLectureDone is bool &&
+             data.isDppDone is bool &&
+             data.isRefBookDone is bool &&
+             data.isPyqDone is bool &&
+             data.isCompleted is bool &&
+             isValidDateTimeString(data.updatedAt);
+    }
+
+    function isValidSemester(data) {
+      return hasRequiredFields(['userId', 'number', 'isActive', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.number is int && data.number >= 1 && data.number <= 8 &&
+             data.isActive is bool &&
+             isValidDateTimeString(data.createdAt);
+    }
+
+    function isValidSubjectGrade(data) {
+      return hasRequiredFields(['semesterId', 'subjectName', 'credits', 'hasBacklog']) &&
+             data.semesterId is string &&
+             data.subjectName is string && data.subjectName.size() >= 2 && data.subjectName.size() <= 100 &&
+             data.credits is int && data.credits >= 0 && data.credits <= 10 &&
+             data.hasBacklog is bool &&
+             (!('grade' in data) || (data.grade is string && data.grade.size() <= 2)) &&
+             (!('gradePoint' in data) || (data.gradePoint is number && data.gradePoint >= 0 && data.gradePoint <= 10));
+    }
+
+    function isValidCertification(data) {
+      return hasRequiredFields(['userId', 'title', 'provider', 'status', 'xpAwarded', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 100 &&
+             data.provider is string && data.provider.size() >= 2 && data.provider.size() <= 100 &&
+             data.status in ['IN_PROGRESS', 'COMPLETED', 'DROPPED'] &&
+             data.xpAwarded is bool &&
+             isValidDateTimeString(data.createdAt) &&
+             (!('url' in data) || (data.url is string && data.url.size() <= 500)) &&
+             (!('completedAt' in data) || isValidDateTimeString(data.completedAt));
+    }
+
+    function isValidInternship(data) {
+      return hasRequiredFields(['userId', 'company', 'role', 'type', 'status', 'xpAwarded', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.company is string && data.company.size() >= 2 && data.company.size() <= 100 &&
+             data.role is string && data.role.size() >= 2 && data.role.size() <= 100 &&
+             data.type is string && data.type.size() >= 2 && data.type.size() <= 50 &&
+             data.status in ['APPLIED', 'ONGOING', 'COMPLETED', 'REJECTED'] &&
+             data.xpAwarded is bool &&
+             isValidDateTimeString(data.createdAt) &&
+             (!('startDate' in data) || isValidDateString(data.startDate)) &&
+             (!('endDate' in data) || isValidDateString(data.endDate)) &&
+             (!('stipend' in data) || (data.stipend is number && data.stipend >= 0));
+    }
+
+    function isValidRoadmap(data) {
+      return hasRequiredFields(['userId', 'title', 'syllabus', 'timeframe', 'totalStudyHours', 'sessions', 'createdAt', 'isArchived']) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 200 &&
+             data.syllabus is string &&
+             data.timeframe is string &&
+             data.totalStudyHours is number &&
+             data.sessions is list &&
+             isValidDateTimeString(data.createdAt) &&
+             data.isArchived is bool;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    match /dailyLogs/{logId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidDailyLog(request.resource.data);
+      allow update: if isDocOwner() && isValidDailyLog(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidTransaction(request.resource.data);
+      allow update: if false; // Transactions are immutable
+      allow delete: if isDocOwner();
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidSubject(request.resource.data);
+      allow update: if isDocOwner() && isValidSubject(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /chapters/{chapterId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isSubjectOwner(request.resource.data.subjectId) && isValidChapter(request.resource.data);
+      allow update: if isAuthenticated() && isSubjectOwner(resource.data.subjectId) && isValidChapter(request.resource.data);
+      allow delete: if isAuthenticated() && isSubjectOwner(resource.data.subjectId);
+    }
+
+    match /semesters/{semesterId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidSemester(request.resource.data);
+      allow update: if isDocOwner() && isValidSemester(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /subjectGrades/{gradeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isSemesterOwner(request.resource.data.semesterId) && isValidSubjectGrade(request.resource.data);
+      allow update: if isAuthenticated() && isSemesterOwner(resource.data.semesterId) && isValidSubjectGrade(request.resource.data);
+      allow delete: if isAuthenticated() && isSemesterOwner(resource.data.semesterId);
+    }
+
+    match /certifications/{certId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidCertification(request.resource.data);
+      allow update: if isDocOwner() && isValidCertification(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /internships/{internshipId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidInternship(request.resource.data);
+      allow update: if isDocOwner() && isValidInternship(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    match /roadmaps/{roadmapId} {
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidRoadmap(request.resource.data);
+      allow update: if isDocOwner() && isValidRoadmap(request.resource.data);
+      allow delete: if isDocOwner();
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
