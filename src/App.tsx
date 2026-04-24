@@ -1,24 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { useStats } from "./hooks/useStats";
 import { Sidebar } from "./components/layout/Sidebar";
 import { TopNav } from "./components/layout/TopNav";
 import { AiBuddyBubble } from "./components/layout/AiBuddyBubble";
 import { LandingPage } from "./components/auth/LandingPage";
-import { PlayerCard } from "./components/dashboard/PlayerCard";
-import { DailyTargetCard } from "./components/dashboard/DailyTargetCard";
-import { StudyInput } from "./components/dashboard/StudyInput";
-import { ActionGrids } from "./components/dashboard/ActionGrids";
-import { PulseFeed } from "./components/dashboard/PulseFeed";
-import { DayCompletionModal } from "./components/dashboard/DayCompletionModal";
-import { PomodoroTimer } from "./components/pomodoro/PomodoroTimer";
-import { SubjectList } from "./components/syllabus/SubjectList";
-import { SemesterDashboard } from "./components/semester/SemesterDashboard";
-import { CertificationBoard } from "./components/certifications/CertificationBoard";
-import { ProgressChart } from "./components/dashboard/ProgressChart";
-import { GpaTracker } from "./components/dashboard/GpaTracker";
-import { RoadmapModal } from "./components/roadmap/RoadmapModal";
-import { RoadmapTab } from "./components/roadmap/RoadmapTab";
+
+// Lazy load heavy components
+const PlayerCard = lazy(() => import("./components/dashboard/PlayerCard").then(m => ({ default: m.PlayerCard })));
+const DailyTargetCard = lazy(() => import("./components/dashboard/DailyTargetCard").then(m => ({ default: m.DailyTargetCard })));
+const StudyInput = lazy(() => import("./components/dashboard/StudyInput").then(m => ({ default: m.StudyInput })));
+const ActionGrids = lazy(() => import("./components/dashboard/ActionGrids").then(m => ({ default: m.ActionGrids })));
+const PulseFeed = lazy(() => import("./components/dashboard/PulseFeed").then(m => ({ default: m.PulseFeed })));
+const DayCompletionModal = lazy(() => import("./components/dashboard/DayCompletionModal").then(m => ({ default: m.DayCompletionModal })));
+const PomodoroTimer = lazy(() => import("./components/pomodoro/PomodoroTimer").then(m => ({ default: m.PomodoroTimer })));
+const SubjectList = lazy(() => import("./components/syllabus/SubjectList").then(m => ({ default: m.SubjectList })));
+const SemesterDashboard = lazy(() => import("./components/semester/SemesterDashboard").then(m => ({ default: m.SemesterDashboard })));
+const CertificationBoard = lazy(() => import("./components/certifications/CertificationBoard").then(m => ({ default: m.CertificationBoard })));
+const ProgressChart = lazy(() => import("./components/dashboard/ProgressChart").then(m => ({ default: m.ProgressChart })));
+const GpaTracker = lazy(() => import("./components/dashboard/GpaTracker").then(m => ({ default: m.GpaTracker })));
+const RoadmapModal = lazy(() => import("./components/roadmap/RoadmapModal").then(m => ({ default: m.RoadmapModal })));
+const RoadmapTab = lazy(() => import("./components/roadmap/RoadmapTab").then(m => ({ default: m.RoadmapTab })));
+
 import { Toaster, toast } from "sonner";
 import { Loader2, LayoutDashboard, BookOpen, Timer, GraduationCap, History, Settings, Sparkles, Trash2, LogOut, ChevronRight, Moon, CheckCircle2, Map as MapIcon, Calendar, ArrowRight, Upload, Zap, Trophy, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -148,37 +151,20 @@ export default function App() {
 
       {/* Dynamic Ambient Background Glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <motion.div 
-          animate={{
-            x: [0, 100, -100, 0],
-            y: [0, -50, 50, 0],
-          }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-amber-500/5 blur-[150px] rounded-full"
-        />
-        <motion.div 
-          animate={{
-            x: [0, -120, 120, 0],
-            y: [0, 80, -80, 0],
-          }}
-          transition={{
-            duration: 40,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-purple-500/5 blur-[180px] rounded-full"
-        />
+        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-amber-500/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/5 blur-[150px] rounded-full" />
       </div>
       
       <main className={cn(
         "pt-20 p-6 min-h-screen transition-all duration-300 relative z-10",
         isCollapsed ? "ml-0 lg:ml-16" : "ml-0 lg:ml-60"
       )}>
-        <AnimatePresence mode="wait">
+        <Suspense fallback={
+          <div className="flex items-center justify-center p-20">
+            <Loader2 className="w-8 h-8 text-amber-500/20 animate-spin" />
+          </div>
+        }>
+          <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, y: 10 }}
@@ -511,6 +497,7 @@ export default function App() {
             )}
           </motion.div>
         </AnimatePresence>
+        </Suspense>
       </main>
 
       <RoadmapModal 

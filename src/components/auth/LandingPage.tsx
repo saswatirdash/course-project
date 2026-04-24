@@ -97,27 +97,16 @@ export function LandingPage() {
     <div className="min-h-screen bg-[#050508] text-white selection:bg-[#9d4edd]/30 overflow-x-hidden relative">
       {/* Dynamic Background Layer */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        {/* Lo-fi Video Loop */}
-        <video 
-          autoPlay 
-          loop 
-          muted 
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-40 grayscale-[0.2]"
-        >
-          <source 
-            src="https://assets.mixkit.co/videos/preview/mixkit-rain-drops-on-a-window-at-night-2422-large.mp4" 
-            type="video/mp4" 
-          />
-        </video>
+        {/* Deep Atmosphere Gradient (Replaces heavy video) */}
+        <div className="absolute inset-0 bg-[#050508]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,_rgba(157,78,221,0.05)_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_70%_80%,_rgba(245,158,11,0.03)_0%,_transparent_50%)]" />
 
         {/* Ambient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/80 via-[#0a0a0f]/60 to-[#0a0a0f]/90" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.08)_0%,_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(157,78,221,0.05)_0%,_transparent_40%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0a0a0f]/20 to-[#0a0a0f]" />
         
-        {/* Digital Noise / Film Grain */}
-        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        {/* Digital Noise / Film Grain (Optimized) */}
+        <div className="absolute inset-0 opacity-[0.01] mix-blend-overlay pointer-events-none noise-overlay" />
       </div>
 
       {/* Warm Lamp Glow (Interactive) */}
@@ -354,31 +343,6 @@ export function LandingPage() {
       <footer className="relative py-10 text-center text-slate-700 text-xs font-medium uppercase tracking-widest z-10">
         © 2026 BTech Buddies • Built for the Unstoppable
       </footer>
-
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0) translateX(0); }
-          25% { transform: translateY(-20px) translateX(10px); }
-          50% { transform: translateY(-40px) translateX(-10px); }
-          75% { transform: translateY(-20px) translateX(10px); }
-        }
-        .animate-float {
-          animation: float linear infinite;
-        }
-        .dot-grid {
-          background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-          background-size: 30px 30px;
-        }
-        .reveal {
-          opacity: 0;
-          transform: translateY(30px);
-          transition: all 1s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .reveal.active {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      `}</style>
     </div>
   );
 }

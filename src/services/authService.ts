@@ -45,7 +45,7 @@ export const authService = {
       }
       return user;
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         return null;
       }
       console.error("Google Login Error:", error);
