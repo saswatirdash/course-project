@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Plus
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useStats } from "../../hooks/useStats";
 import { calculateLevel, getXpProgressPercent, calculateRank } from "../../lib/stats";
 import { cn } from "../../lib/utils";

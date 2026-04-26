@@ -24,7 +24,7 @@ const RoadmapTab = lazy(() => import("./components/roadmap/RoadmapTab").then(m =
 
 import { Toaster, toast } from "sonner";
 import { Loader2, LayoutDashboard, BookOpen, Timer, GraduationCap, History, Settings, Sparkles, Trash2, LogOut, ChevronRight, Moon, CheckCircle2, Map as MapIcon, Calendar, ArrowRight, Upload, Zap, Trophy, Target } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { BtechYear, Roadmap } from "./types";
 import { getYearLabel } from "./lib/stats";
 import { statsService } from "./services/statsService";
@@ -156,7 +156,7 @@ export default function App() {
       </div>
       
       <main className={cn(
-        "pt-28 p-6 min-h-screen transition-all duration-300 relative z-10",
+        "p-6 pt-24 min-h-screen transition-all duration-300 relative z-10",
         isCollapsed ? "ml-0 lg:ml-16" : "ml-0 lg:ml-60"
       )}>
         <Suspense fallback={
@@ -164,15 +164,7 @@ export default function App() {
             <Loader2 className="w-8 h-8 text-amber-500/20 animate-spin" />
           </div>
         }>
-          <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="max-w-7xl mx-auto"
-          >
+          <div className="max-w-7xl mx-auto">
             {activeTab === "dashboard" && (
               <div className="space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -495,17 +487,17 @@ export default function App() {
                 </div>
               </div>
             )}
-          </motion.div>
-        </AnimatePresence>
+          </div>
         </Suspense>
       </main>
 
-      <RoadmapModal 
-        isOpen={isRoadmapModalOpen}
-        onClose={() => setIsRoadmapModalOpen(false)}
-      />
-
-      <AiBuddyBubble />
+      <Suspense fallback={null}>
+        <RoadmapModal 
+          isOpen={isRoadmapModalOpen}
+          onClose={() => setIsRoadmapModalOpen(false)}
+        />
+        <AiBuddyBubble />
+      </Suspense>
       <Toaster position="top-right" theme="dark" richColors />
     </div>
   );

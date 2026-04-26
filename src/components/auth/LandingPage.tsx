@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Zap, BookOpen, Sparkles, Trophy, ShoppingBag, AlertTriangle, LayoutDashboard, LogIn, Cpu, Target, Calculator, ShieldAlert, GraduationCap, Map } from "lucide-react";
 import { authService } from "../../services/authService";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const FEATURES = [
   {

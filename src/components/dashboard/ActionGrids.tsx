@@ -3,7 +3,7 @@ import { REWARDS, SHOP, PUNISHMENTS } from "../../constants";
 import { coreService } from "../../services/coreService";
 import { TransactionType } from "../../types";
 import { toast } from "sonner";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { cn } from "../../lib/utils";
 
 import { useStats } from "../../hooks/useStats";

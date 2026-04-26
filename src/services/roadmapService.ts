@@ -1,7 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { RoadmapStatus, RoadmapSession, Roadmap } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiClient: any = null;
+
+function getAi() {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured. Please add it to your environment variables.");
+    }
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+}
 
 export interface RoadmapResponse {
   totalStudyHours: number;
@@ -10,6 +21,7 @@ export interface RoadmapResponse {
 
 export const roadmapService = {
   generateRoadmap: async (syllabus: string, timeframe: string): Promise<RoadmapResponse> => {
+    const ai = getAi();
     const prompt = `
       Syllabus Content: "${syllabus}"
       Target Timeframe: "${timeframe}"
@@ -62,6 +74,7 @@ export const roadmapService = {
   },
 
   askAiAboutSession: async (session: RoadmapSession, question: string): Promise<string> => {
+    const ai = getAi();
     const prompt = `
       Topic: "${session.title}"
       Sub-topics: ${session.topics.join(", ")}
