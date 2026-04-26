@@ -9,8 +9,8 @@ export function LoginPage() {
       const user = await authService.loginWithGoogle();
       if (!user) return;
       toast.success("Welcome to the Sanctuary.");
-    } catch (error) {
-      toast.error("Manifestation failed. Please try again.");
+    } catch (error: any) {
+      toast.error(error.message || "Manifestation failed. Please try again.");
     }
   };
 

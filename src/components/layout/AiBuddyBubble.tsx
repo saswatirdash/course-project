@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import React, { useState, useRef, useEffect } from "react";
 import { Bot, X, Upload, Send, Loader2, Sparkles, Book, Globe, Lightbulb, FileText, Image as ImageIcon, Trash2, MessageSquare, History, User, GraduationCap } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 import { useStats } from "../../hooks/useStats";
 import { toast } from "sonner";

@@ -83,8 +83,8 @@ export function LandingPage() {
       const user = await authService.loginWithGoogle();
       if (!user) return;
       toast.success("Welcome back, Buddy!");
-    } catch (error) {
-      toast.error("Login failed. Please try again.");
+    } catch (error: any) {
+      toast.error(error.message || "Login failed. Please try again.");
     }
   };
 
@@ -121,17 +121,25 @@ export function LandingPage() {
       <div className="fixed inset-0 dot-grid opacity-10 pointer-events-none z-0" />
 
       {/* Section 1: Hero */}
-      <section className="relative h-screen flex flex-col items-center justify-center text-center p-6 z-10">
+      <section className="relative min-h-screen flex flex-col items-center justify-center text-center p-6 z-10">
         <div className="space-y-6 max-w-4xl">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.2 }}
-            className="flex justify-center mb-8"
+            className="flex items-center justify-center gap-4 mb-8"
           >
             <div className="w-16 h-16 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center relative group backdrop-blur-md">
               <Zap className="w-8 h-8 text-amber-200/40 relative z-10 group-hover:text-amber-200 transition-colors" />
               <div className="absolute inset-0 bg-amber-500/5 blur-xl group-hover:bg-amber-500/20 transition-all" />
+            </div>
+            <div className="text-left">
+              <span className="block text-2xl md:text-3xl font-black text-amber-100/90 tracking-tighter uppercase font-mono leading-none">
+                btech buddies
+              </span>
+              <span className="text-[10px] text-slate-500 font-medium uppercase tracking-[0.4em] mt-1 block">
+                Sanctuary v2.0
+              </span>
             </div>
           </motion.div>
           
@@ -315,7 +323,7 @@ export function LandingPage() {
       </section>
 
       {/* Section 5: Login Card */}
-      <section id="login-section" className="relative py-32 px-6 z-10 flex items-center justify-center">
+      <section id="login-section" className="relative py-32 px-6 z-10 flex flex-col items-center justify-center min-h-[50vh]">
         <div 
           ref={(el) => { revealRefs.current[13] = el; }}
           className="reveal w-full max-w-sm p-10 rounded-[32px] bg-white/5 border border-amber-500/20 shadow-2xl backdrop-blur-2xl text-center space-y-8"
@@ -332,6 +340,11 @@ export function LandingPage() {
             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
             Continue with Google
           </button>
+
+          <p className="text-[10px] text-slate-500 font-light italic">
+            Trouble logging in? <br />
+            <a href={window.location.href} target="_blank" rel="noopener noreferrer" className="text-amber-500/60 hover:text-amber-500 underline underline-offset-4">Open in a new tab</a>
+          </p>
 
           <p className="text-[10px] text-slate-600 font-medium uppercase tracking-[0.4em]">
             Sanctuary OS v2.0

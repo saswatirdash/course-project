@@ -48,6 +48,12 @@ export const authService = {
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         return null;
       }
+      if (error.code === 'auth/unauthorized-domain') {
+        const domain = window.location.hostname;
+        console.error("Unauthorized Domain:", domain);
+        const errorMsg = `Login Blocked: "${domain}" is not an authorized domain in Firebase. \n\nTo fix this:\n1. Go to Firebase Console\n2. Navigate to Auth > Settings > Authorized Domains\n3. Add "${domain}" to the list.`;
+        throw new Error(errorMsg);
+      }
       console.error("Google Login Error:", error);
       throw error;
     }

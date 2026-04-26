@@ -59,8 +59,8 @@ export function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }
             <Zap className="w-5 h-5 text-amber-500/80 fill-current" />
           </div>
           {!isCollapsed && (
-            <span className="font-mono font-black text-[9px] tracking-[0.2em] bg-amber-500 text-black px-1.5 py-0.5 rounded uppercase">
-              Sanctuary
+            <span className="font-mono font-black text-[8px] tracking-[0.1em] bg-amber-500 text-black px-1.5 py-0.5 rounded uppercase whitespace-nowrap">
+              BTech Buddies
             </span>
           )}
         </div>
