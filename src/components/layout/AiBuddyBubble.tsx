@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import React, { useState, useRef, useEffect } from "react";
-import { Bot, X, Upload, Send, Loader2, Sparkles, Book, Globe, Lightbulb, FileText, Image as ImageIcon, Trash2, MessageSquare, History, User, GraduationCap } from "lucide-react";
+import { Bot, X, Upload, Send, Loader2, Sparkles, Book, Globe, Lightbulb, FileText, Image as ImageIcon, Trash2, MessageSquare, History, User, Mic, MicOff, Languages, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { useStats } from "../../hooks/useStats";
@@ -22,6 +22,12 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+const SUPPORTED_LANGUAGES = [
+  { code: 'en-US', name: 'English', label: 'Eng' },
+  { code: 'hi-IN', name: 'Hindi', label: 'हिन्दी' },
+  { code: 'or-IN', name: 'Odia', label: 'ଓଡ଼ିଆ' }
+];
+
 export function AiBuddyBubble() {
   const [isOpen, setIsOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -29,6 +35,12 @@ export function AiBuddyBubble() {
   const [message, setMessage] = useState("");
   const [selectedFile, setSelectedFile] = useState<{ name: string; type: string; data: string; extractedText?: string } | null>(null);
   const [fileContext, setFileContext] = useState<{ name: string; type: string; data: string; extractedText?: string } | null>(null);
+  
+  // Voice states
+  const [isListening, setIsListening] = useState(false);
+  const [selectedLang, setSelectedLang] = useState(SUPPORTED_LANGUAGES[0]);
+  const recognitionRef = useRef<any>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const { userStats } = useStats();
@@ -38,6 +50,58 @@ export function AiBuddyBubble() {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatMessages, isAnalyzing]);
+
+  // Handle Speech Recognition Setup
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = true;
+
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = Array.from(event.results)
+            .map((result: any) => result[0])
+            .map(result => result.transcript)
+            .join("");
+          setMessage(transcript);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          setIsListening(false);
+          
+          if (event.error === 'not-allowed') {
+            toast.error("Microphone access denied. Please click the lock icon in your browser's address bar and allow microphone permissions.");
+          } else if (event.error === 'network') {
+            toast.error("Network error occurred during speech recognition. Please check your connection.");
+          } else {
+            toast.error("Speech recognition failed. Please try again.");
+          }
+        };
+      }
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      if (!recognitionRef.current) {
+        toast.error("Speech recognition not supported in this browser.");
+        return;
+      }
+      recognitionRef.current.lang = selectedLang.code;
+      recognitionRef.current.start();
+      setIsListening(true);
+      toast.info(`Listening in ${selectedLang.name}...`);
+    }
+  };
 
   useEffect(() => {
     const handleAnalyzeFile = (e: any) => {
@@ -51,8 +115,6 @@ export function AiBuddyBubble() {
             type: file.type,
             data: event.target?.result as string
           });
-          // Optionally trigger analysis automatically
-          // setMessage("Please analyze this study material.");
         };
         reader.readAsDataURL(file);
       }
@@ -91,6 +153,7 @@ export function AiBuddyBubble() {
     setIsAnalyzing(true);
     setMessage("");
     setSelectedFile(null);
+    if (isListening) recognitionRef.current?.stop();
 
     // Add user message to UI
     const newUserMsg: ChatMessage = {
@@ -150,8 +213,6 @@ export function AiBuddyBubble() {
         
         setFileContext({ ...currentFile, extractedText: extracted });
       } else if (fileContext && chatMessages.length > 0) {
-        // We only need to inject context explicitly if it's not already in history or if we want absolute clarity
-        // For simplicity, if we have extracted text, we can append it as context for the question
         if (fileContext.extractedText) {
           currentParts.push({ text: `(Context: Refer to the previously uploaded study material "${fileContext.name}")` });
         }
@@ -164,9 +225,12 @@ export function AiBuddyBubble() {
         contents,
         config: {
           systemInstruction: `You are a specialized BTech engineering tutor for a ${userYear} student.
-          ${isInitialAnalysis 
+          IMPORTANT: You are multilingual and highly proficient in English, Hindi, and Odia. 
+          1. Always respond in the language used by the user. If they speak in Odia, respond in Odia. If they use Hindi, respond in Hindi.
+          2. Maintain a friendly, supportive, and expert academic tone.
+          3. ${isInitialAnalysis 
             ? "Analyze the provided study material and provide a structured JSON study guide." 
-            : "Engage in a helpful Q&A session about the study material. Be concise, expert, and academic. Answer questions based on the context provided in previous messages or the current material."}`,
+            : "Engage in a helpful Q&A session about the study material. Provide detailed, comprehensive, and explanatory answers. Use bullet points and clear examples to help the student grasp complex engineering concepts. Prioritize deep understanding and clarity over brevity."}`,
           responseMimeType: isInitialAnalysis ? "application/json" : "text/plain",
           responseSchema: isInitialAnalysis ? {
             type: Type.OBJECT,
@@ -212,7 +276,6 @@ export function AiBuddyBubble() {
     } catch (error: any) {
       console.error("AI Analysis Error:", error);
       toast.error("AI Buddy is currently recalibrating. Please try again later.");
-      // Remove the last message from UI if it failed
       setChatMessages(prev => prev.slice(0, -1));
     } finally {
       setIsAnalyzing(false);
@@ -253,8 +316,23 @@ export function AiBuddyBubble() {
                 <Sparkles className="w-5 h-5 text-amber-500/60" />
                 <span className="font-black text-slate-100 uppercase tracking-widest text-xs font-cursive">Buddy AI</span>
               </div>
-              <div className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-500/60 uppercase font-mono">
-                Gemini 3 Flash
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 p-1 bg-black/40 rounded-lg border border-white/5">
+                  {SUPPORTED_LANGUAGES.map(lang => (
+                    <button
+                      key={lang.code}
+                      onClick={() => setSelectedLang(lang)}
+                      className={cn(
+                        "px-2 py-0.5 rounded text-[8px] font-black uppercase transition-all",
+                        selectedLang.code === lang.code 
+                          ? "bg-amber-500 text-black" 
+                          : "text-slate-600 hover:text-slate-400"
+                      )}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -279,7 +357,7 @@ export function AiBuddyBubble() {
                   />
                   <div>
                     <p className="text-slate-300 font-bold uppercase tracking-widest text-xs">Digitize Archive</p>
-                    <p className="text-slate-600 text-[10px] mt-1 italic font-light">Upload scrolls, notes, or trials</p>
+                    <p className="text-slate-600 text-[10px] mt-1 italic font-light">Upload scrolls or ask in English/Hindi/Odia</p>
                   </div>
                 </div>
               )}
@@ -295,7 +373,7 @@ export function AiBuddyBubble() {
                   )}
                 >
                   <div className={cn(
-                    "max-w-[90%] p-3 rounded-2xl text-xs font-mono tracking-tight leading-relaxed",
+                    "max-w-[90%] p-4 rounded-2xl text-sm font-mono tracking-tight leading-relaxed",
                     msg.role === 'user' 
                       ? "bg-amber-500/10 border border-amber-500/20 text-amber-200/80 rounded-tr-none" 
                       : "bg-white/5 border border-white/5 text-slate-300 rounded-tl-none"
@@ -303,20 +381,20 @@ export function AiBuddyBubble() {
                     {msg.role === 'user' && (
                       <div className="flex items-center gap-2 mb-1 opacity-50">
                         <User className="w-3 h-3" />
-                        <span className="text-[10px] font-black uppercase">Seeker</span>
+                        <span className="text-xs font-black uppercase">Seeker</span>
                       </div>
                     )}
                     {msg.role === 'model' && (
                       <div className="flex items-center gap-2 mb-1 text-amber-500/60">
                         <Bot className="w-3 h-3" />
-                        <span className="text-[10px] font-black uppercase">Guide</span>
+                        <span className="text-xs font-black uppercase">Guide</span>
                       </div>
                     )}
 
                     {msg.fileName && (
                       <div className="mb-2 p-2 rounded-lg bg-black/20 border border-white/5 flex items-center gap-2">
                         <FileText className="w-3 h-3 text-amber-500/60" />
-                        <span className="text-[10px] truncate">{msg.fileName}</span>
+                        <span className="text-xs truncate">{msg.fileName}</span>
                       </div>
                     )}
 
@@ -327,19 +405,19 @@ export function AiBuddyBubble() {
                         <div className="p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
                           <div className="flex items-center gap-2 mb-1">
                             <Sparkles className="w-3 h-3 text-amber-500/40" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Topic</span>
+                            <span className="text-xs font-black uppercase tracking-widest">Topic</span>
                           </div>
-                          <p className="text-slate-200 font-bold">{msg.response.topic}</p>
+                          <p className="text-slate-200 font-bold text-sm tracking-tight">{msg.response.topic}</p>
                         </div>
 
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-emerald-500/60">
                             <Book className="w-3 h-3" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Scrolls</span>
+                            <span className="text-xs font-black uppercase tracking-widest">Scrolls</span>
                           </div>
                           <ul className="space-y-1">
                             {msg.response.referenceBooks.map((book, i) => (
-                              <li key={i} className="text-[10px] font-light text-slate-400 pl-3 border-l border-white/5">{book}</li>
+                              <li key={i} className="text-xs font-light text-slate-400 pl-3 border-l border-white/5">{book}</li>
                             ))}
                           </ul>
                         </div>
@@ -347,9 +425,9 @@ export function AiBuddyBubble() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-amber-500/60">
                             <Lightbulb className="w-3 h-3" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Rite</span>
+                            <span className="text-xs font-black uppercase tracking-widest">Rite</span>
                           </div>
-                          <p className="text-[10px] font-light text-slate-400 leading-relaxed italic">{msg.response.studyStrategy}</p>
+                          <p className="text-xs font-light text-slate-400 leading-relaxed italic">{msg.response.studyStrategy}</p>
                         </div>
                       </div>
                     )}
@@ -383,7 +461,11 @@ export function AiBuddyBubble() {
                     <div className="absolute inset-0 bg-amber-500/20 blur-xl animate-pulse rounded-full" />
                     <Loader2 className="w-6 h-6 text-amber-500/60 animate-spin relative z-10" />
                   </div>
-                  <p className="text-slate-600 text-[9px] font-mono tracking-widest animate-pulse">GUIDE IS PONDERING...</p>
+                  <p className="text-slate-600 text-[9px] font-mono tracking-widest animate-pulse uppercase">
+                    {selectedLang.code === 'hi-IN' ? "मार्गदर्शक विचार कर रहा है..." : 
+                     selectedLang.code === 'or-IN' ? "ଗାଇଡ୍ ଚିନ୍ତା କରୁଛି..." : 
+                     "GUIDE IS PONDERING..."}
+                  </p>
                 </div>
               )}
               <div ref={chatEndRef} />
@@ -405,21 +487,35 @@ export function AiBuddyBubble() {
               )}
               
               <div className="flex items-end gap-2">
-                {chatMessages.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {chatMessages.length > 0 && (
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-500 hover:text-amber-500 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileSelect} 
+                        className="hidden" 
+                        accept="image/*,.pdf,.docx,.txt"
+                      />
+                    </button>
+                  )}
                   <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-3 bg-white/5 border border-white/5 rounded-xl text-slate-500 hover:text-amber-500 transition-colors"
+                    onClick={toggleListening}
+                    className={cn(
+                      "p-3 rounded-xl border transition-all",
+                      isListening 
+                        ? "bg-red-500/20 border-red-500 text-red-500 animate-pulse" 
+                        : "bg-white/5 border-white/5 text-slate-500 hover:text-amber-500"
+                    )}
                   >
-                    <Upload className="w-4 h-4" />
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      onChange={handleFileSelect} 
-                      className="hidden" 
-                      accept="image/*,.pdf,.docx,.txt"
-                    />
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </button>
-                )}
+                </div>
+                
                 <div className="relative flex-1">
                   <textarea
                     value={message}
@@ -430,8 +526,8 @@ export function AiBuddyBubble() {
                         handleAnalyze();
                       }
                     }}
-                    placeholder={chatMessages.length > 0 ? "Ask about the material..." : "Inquire the Sanctuary AI..."}
-                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-slate-300 font-mono focus:border-amber-500/20 outline-none transition-all resize-none pr-10 placeholder:text-slate-800"
+                    placeholder={chatMessages.length > 0 ? "Ask in English/Hindi/Odia..." : "Inquire the sanctuary AI..."}
+                    className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-base text-slate-300 font-mono focus:border-amber-500/20 outline-none transition-all resize-none pr-10 placeholder:text-slate-800"
                     rows={chatMessages.length > 0 ? 1 : 2}
                   />
                   <button 

@@ -15,42 +15,10 @@ import {
   Timestamp,
   writeBatch
 } from "firebase/firestore";
-import { db, auth } from "../firebase";
+import { db, auth, handleFirestoreError, OperationType } from "../firebase";
 import { DailyLog, Transaction, TransactionType, User, Rank } from "../types";
 import { calculateRank, calculateLevel } from "../lib/stats";
 import { formatDate, getISTTime } from "../lib/utils";
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
 
 export const coreService = {
   async setDailyTarget(hours: number) {

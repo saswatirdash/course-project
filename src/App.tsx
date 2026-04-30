@@ -49,6 +49,28 @@ export default function App() {
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [isRoadmapModalOpen, setIsRoadmapModalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    image: "",
+    github: "",
+    linkedin: "",
+    twitter: ""
+  });
+
+  // Initialize form when userStats loads
+  React.useEffect(() => {
+    if (userStats) {
+      setProfileForm({
+        name: userStats.name || "",
+        image: userStats.image || "",
+        github: userStats.github || "",
+        linkedin: userStats.linkedin || "",
+        twitter: userStats.twitter || ""
+      });
+    }
+  }, [userStats]);
 
   const handleUpdateYear = async (year: BtechYear) => {
     if (!user) return;
@@ -88,9 +110,34 @@ export default function App() {
     }
   };
 
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setIsSavingProfile(true);
+    try {
+      await statsService.updateUserStats(user.uid, {
+        name: profileForm.name,
+        image: profileForm.image,
+        github: profileForm.github,
+        linkedin: profileForm.linkedin,
+        twitter: profileForm.twitter
+      });
+      toast.success("Profile details updated successfully");
+    } catch (error) {
+      toast.error("Failed to update profile details");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const [resetConfirmStep, setResetConfirmStep] = useState(0);
+
   const handleResetData = async () => {
     if (!user) return;
-    if (!window.confirm("Are you absolutely sure? This will delete all your study logs, subjects, semesters, and progress. This cannot be undone.")) return;
+    
+    if (resetConfirmStep < 2) {
+      setResetConfirmStep(prev => prev + 1);
+      return;
+    }
     
     setIsResetting(true);
     const toastId = toast.loading("Initializing data purge...");
@@ -100,12 +147,19 @@ export default function App() {
       toast.loading("Revoking all earned XP...", { id: toastId });
       await new Promise(resolve => setTimeout(resolve, 800));
       toast.loading("Wiping academic history...", { id: toastId });
+      await new Promise(resolve => setTimeout(resolve, 800));
+      toast.loading("Purging semesters and roadmaps...", { id: toastId });
       
       await statsService.resetUserData(user.uid);
       
       toast.success("Profile reset to factory settings", { id: toastId });
+      // Force a hard reload to clear all states and re-fetch clean data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       toast.error("Data purge failed", { id: toastId });
+      setResetConfirmStep(0);
     } finally {
       setIsResetting(false);
     }
@@ -140,14 +194,37 @@ export default function App() {
       {/* Sidebar and Top Nav */}
       <Sidebar 
         activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          setIsMobileOpen(false); // Close mobile menu when tab changes
+        }} 
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
       />
-      <TopNav activeTab={activeTab} isCollapsed={isCollapsed} />
+      <TopNav 
+        activeTab={activeTab} 
+        isCollapsed={isCollapsed} 
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
+      />
 
       {/* Global Grain Overlay */}
       <div className="fixed inset-0 z-[100] pointer-events-none noise-overlay" />
+
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
 
       {/* Dynamic Ambient Background Glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -351,140 +428,254 @@ export default function App() {
 
             {activeTab === "settings" && (
               <div className="max-w-2xl mx-auto space-y-8 pb-20">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="p-3 rounded-2xl bg-white/5 text-amber-500/60 border border-white/10">
-                    <Settings className="w-6 h-6" />
+                {statsLoading ? (
+                  <div className="flex items-center justify-center p-20">
+                    <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-black text-slate-100 uppercase tracking-widest">Settings</h2>
-                    <p className="text-sm text-slate-500 font-light italic">Change your settings</p>
-                  </div>
-                </div>
-
-                {/* Profile Section */}
-                <div className="p-6 glass-card space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
-                      {userStats?.image ? (
-                        <img src={userStats.image} alt={userStats.name} className="w-full h-full object-cover grayscale-[0.3]" referrerPolicy="no-referrer" />
-                      ) : (
-                        <span className="text-xl font-bold text-amber-500/60">{userStats?.name?.substring(0, 2).toUpperCase()}</span>
-                      )}
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="p-3 rounded-2xl bg-white/5 text-amber-500/60 border border-white/10">
+                        <Settings className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black text-slate-100 uppercase tracking-widest">Settings</h2>
+                        <p className="text-sm text-slate-500 font-light italic">Change your settings</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-200">{userStats?.name}</h3>
-                      <p className="text-xs text-slate-500 font-light italic">{userStats?.email}</p>
+
+                    {/* Profile Section */}
+                    <div className="p-6 glass-card space-y-6">
+                      <div className="flex flex-col sm:flex-row items-center gap-6">
+                        <div className="relative group">
+                          <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shadow-2xl">
+                            {profileForm.image ? (
+                              <img src={profileForm.image} alt="Profile" className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all" referrerPolicy="no-referrer" />
+                            ) : (
+                              <span className="text-3xl font-black text-amber-500/40">{(profileForm.name || "BU").substring(0, 2).toUpperCase()}</span>
+                            )}
+                          </div>
+                          <div className="absolute -bottom-2 -right-2 p-2 bg-amber-500 rounded-xl shadow-lg border-4 border-[#0F172A] opacity-0 group-hover:opacity-100 transition-all">
+                            <Upload className="w-4 h-4 text-black" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 w-full space-y-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Codename / Name</label>
+                            <input 
+                              type="text"
+                              value={profileForm.name}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                              placeholder="Your identity..."
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500/30 focus:bg-white/10 transition-all font-bold"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Avatar Image URL</label>
+                            <input 
+                              type="text"
+                              value={profileForm.image}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, image: e.target.value }))}
+                              placeholder="Paste image link..."
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500/30 focus:bg-white/10 transition-all font-mono text-[10px]"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Year Selection */}
-                <div className="p-6 glass-card space-y-6">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-slate-100 tracking-wide">Academic Year</h3>
-                    <p className="text-xs text-slate-500 font-light italic">Select your current stage</p>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {Object.values(BtechYear).map((year) => (
-                      <button
-                        key={year}
-                        onClick={() => handleUpdateYear(year)}
-                        className={cn(
-                          "py-3 rounded-xl border font-black text-xs transition-all",
-                          userStats?.btechYear === year
-                            ? "bg-amber-500/20 border-amber-500/20 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
-                            : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
-                        )}
-                      >
-                        {getYearLabel(year)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    {/* Social Links */}
+                    <div className="p-6 glass-card space-y-6">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-slate-100 tracking-wide">Social Connections</h3>
+                        <p className="text-xs text-slate-500 font-light italic">Link your tech profiles</p>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">GitHub</label>
+                            <input 
+                              type="text"
+                              value={profileForm.github}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, github: e.target.value }))}
+                              placeholder="username"
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-500/30 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">LinkedIn</label>
+                            <input 
+                              type="text"
+                              value={profileForm.linkedin}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, linkedin: e.target.value }))}
+                              placeholder="profile-slug"
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-500/30 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Twitter/X</label>
+                            <input 
+                              type="text"
+                              value={profileForm.twitter}
+                              onChange={(e) => setProfileForm(prev => ({ ...prev, twitter: e.target.value }))}
+                              placeholder="@handle"
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-500/30 transition-all"
+                            />
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={handleSaveProfile}
+                          disabled={isSavingProfile}
+                          className="w-full py-4 rounded-2xl bg-amber-500 text-black font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                          {isSavingProfile ? "SAVING CHANGES..." : "SAVE PROFILE SETTINGS"}
+                        </button>
+                      </div>
+                    </div>
 
-                {/* Branch Selection */}
-                <div className="p-6 glass-card space-y-6">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-slate-100 tracking-wide">Engineering Branch</h3>
-                    <p className="text-xs text-slate-500 font-light italic">Your field of expertize</p>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {["CSE", "ECE", "ME", "CE", "EE", "IT", "AI/ML", "DS"].map((branch) => (
-                      <button
-                        key={branch}
-                        onClick={() => handleUpdateBranch(branch)}
-                        className={cn(
-                          "py-3 rounded-xl border font-black text-xs transition-all",
-                          userStats?.branch === branch
-                            ? "bg-purple-500/20 border-purple-500/20 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
-                            : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
-                        )}
-                      >
-                        {branch}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Semester Selection */}
-                <div className="p-6 glass-card space-y-6">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-slate-100 tracking-wide">Active Semester</h3>
-                    <p className="text-xs text-slate-500 font-light italic">
-                      {userStats?.btechYear 
-                        ? `Focus session for ${getYearLabel(userStats.btechYear)}` 
-                        : "Select your year first"}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {userStats?.btechYear ? (
-                      YEAR_SEMESTER_MAP[userStats.btechYear].map((num) => {
-                        const semester = semesters.find((s) => s.number === num);
-                        return semester ? (
+                    {/* Year Selection */}
+                    <div className="p-6 glass-card space-y-6">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-slate-100 tracking-wide">Academic Year</h3>
+                        <p className="text-xs text-slate-500 font-light italic">Select your current stage</p>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {Object.values(BtechYear).map((year) => (
                           <button
-                            key={semester.id}
-                            onClick={() => handleSetActiveSemester(semester.id)}
+                            key={year}
+                            onClick={() => handleUpdateYear(year)}
                             className={cn(
-                              "py-4 rounded-xl border font-black text-xs transition-all relative overflow-hidden group",
-                              semester.isActive
-                                ? "bg-amber-500/20 border-amber-500/20 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                              "py-3 rounded-xl border font-black text-xs transition-all",
+                              userStats?.btechYear === year
+                                ? "bg-amber-500/20 border-amber-500/20 text-amber-100 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
                                 : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
                             )}
                           >
-                            <span className="relative z-10">Semester {num}</span>
+                            {getYearLabel(year)}
                           </button>
-                        ) : (
-                          <button
-                            key={num}
-                            onClick={() => handleCreateAndSetActiveSemester(num)}
-                            className="py-4 rounded-xl border border-dashed border-white/10 bg-white/5 text-slate-600 hover:text-amber-500/60 hover:border-amber-500/30 transition-all font-bold text-xs flex flex-col items-center justify-center gap-1"
-                          >
-                            <span>Initialize Semester {num}</span>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="col-span-full py-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
-                        <p className="text-xs text-slate-600 italic">Please select your academic year above</p>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
 
-                {/* Logout Section */}
-                <div className="p-6 glass-card space-y-6">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-slate-100 tracking-wide">Account Session</h3>
-                    <p className="text-xs text-slate-500 font-light italic">End your study session</p>
-                  </div>
-                  <button
-                    onClick={() => authService.logout()}
-                    className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/5 border border-white/10 text-slate-500 hover:text-amber-100 hover:border-amber-500/30 transition-all font-bold text-sm"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    Logout Session
-                  </button>
-                </div>
+                    {/* Branch Selection */}
+                    <div className="p-6 glass-card space-y-6">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-slate-100 tracking-wide">Engineering Branch</h3>
+                        <p className="text-xs text-slate-500 font-light italic">Your field of expertize</p>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {["CSE", "ECE", "ME", "CE", "EE", "IT", "AI/ML", "DS"].map((branch) => (
+                          <button
+                            key={branch}
+                            onClick={() => handleUpdateBranch(branch)}
+                            className={cn(
+                              "py-3 rounded-xl border font-black text-xs transition-all",
+                              userStats?.branch === branch
+                                ? "bg-purple-500/20 border-purple-500/20 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                                : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
+                            )}
+                          >
+                            {branch}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Semester Selection */}
+                    <div className="p-6 glass-card space-y-6">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-slate-100 tracking-wide">Active Semester</h3>
+                        <p className="text-xs text-slate-500 font-light italic">
+                          {userStats?.btechYear 
+                            ? `Focus session for ${getYearLabel(userStats.btechYear)}` 
+                            : "Select your year first"}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {userStats?.btechYear ? (
+                          YEAR_SEMESTER_MAP[userStats.btechYear].map((num) => {
+                            const semester = semesters.find((s) => s.number === num);
+                            return semester ? (
+                              <button
+                                key={semester.id}
+                                onClick={() => handleSetActiveSemester(semester.id)}
+                                className={cn(
+                                  "py-4 rounded-xl border font-black text-xs transition-all relative overflow-hidden group",
+                                  semester.isActive
+                                    ? "bg-amber-500/20 border-amber-500/20 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                                    : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
+                                )}
+                              >
+                                <span className="relative z-10">Semester {num}</span>
+                              </button>
+                            ) : (
+                              <button
+                                key={num}
+                                onClick={() => handleCreateAndSetActiveSemester(num)}
+                                className="py-4 rounded-xl border border-dashed border-white/10 bg-white/5 text-slate-600 hover:text-amber-500/60 hover:border-amber-500/30 transition-all font-bold text-xs flex flex-col items-center justify-center gap-1"
+                              >
+                                <span>Initialize Semester {num}</span>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="col-span-full py-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                            <p className="text-xs text-slate-600 italic">Please select your academic year above</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Reset Section */}
+                    <div className="p-6 glass-card space-y-6">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-slate-100 tracking-wide uppercase">Danger Zone</h3>
+                        <p className="text-xs text-slate-500 font-light italic">Irreversible actions for your profile</p>
+                      </div>
+                      <button
+                        onClick={handleResetData}
+                        disabled={isResetting}
+                        onMouseLeave={() => !isResetting && setResetConfirmStep(0)}
+                        className={cn(
+                          "w-full flex items-center justify-center gap-3 py-4 rounded-2xl transition-all font-black text-xs uppercase tracking-widest disabled:opacity-50 group",
+                          resetConfirmStep === 0 
+                            ? "bg-red-500/5 border border-red-500/10 text-red-500/60 hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/20"
+                            : resetConfirmStep === 1
+                              ? "bg-orange-500/20 border border-orange-500/40 text-orange-500 animate-pulse"
+                              : "bg-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,0.4)]"
+                        )}
+                      >
+                        <Trash2 className={cn("w-4 h-4 transition-transform", resetConfirmStep > 0 && "rotate-12")} />
+                        {isResetting 
+                          ? "PURGING DATA..." 
+                          : resetConfirmStep === 0 
+                            ? "Reset Profile (Delete All Data)" 
+                            : resetConfirmStep === 1 
+                              ? "Are you absolutely sure?" 
+                              : "Final Confirmation: DELETE ALL?"
+                        }
+                      </button>
+                    </div>
+
+                    {/* Logout Section */}
+                    <div className="p-6 glass-card space-y-6">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-slate-100 tracking-wide">Account Session</h3>
+                        <p className="text-xs text-slate-500 font-light italic">End your study session</p>
+                      </div>
+                      <button
+                        onClick={() => authService.logout()}
+                        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white/5 border border-white/10 text-slate-500 hover:text-amber-100 hover:border-amber-500/30 transition-all font-bold text-sm"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        Logout Session
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { GraduationCap, TrendingUp, AlertCircle, Plus, ChevronRight, Trash2, Award } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSemesters, useSubjectGrades } from "../../hooks/useSemester";
+import { useSemesters, useSubjectGrades, useBacklogs } from "../../hooks/useSemester";
 import { semesterService } from "../../services/semesterService";
 import { calculateCGPA, calculateGPA } from "../../lib/stats";
 import { cn } from "../../lib/utils";
@@ -11,12 +11,13 @@ import { useNotifications } from "../../hooks/useNotifications";
 
 export function SemesterDashboard() {
   const { semesters, loading } = useSemesters();
+  const { backlogs: backlogGrades } = useBacklogs();
   const { addNotification } = useNotifications();
   const [isAdding, setIsAdding] = useState(false);
   const [newSemNumber, setNewSemNumber] = useState(1);
 
   const cgpa = calculateCGPA(semesters.map(s => s.gpa || 0));
-  const backlogs = 0; // Simplified for now
+  const backlogs = backlogGrades.length;
 
   const handleAddSemester = async () => {
     try {
@@ -70,7 +71,7 @@ export function SemesterDashboard() {
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Open Loops</p>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Backlogs</p>
               <h3 className="text-3xl font-black text-slate-100 tracking-tight">{backlogs}</h3>
             </div>
           </div>
@@ -192,13 +193,72 @@ function SemesterCard({ semester }: { semester: any }) {
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingGradeId, setDeletingGradeId] = useState<string | null>(null);
+
+  const handleDeleteSemester = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      setTimeout(() => setShowDeleteConfirm(false), 3000);
+      return;
+    }
+
+    try {
+      await semesterService.deleteSemester(semester.id);
+      toast.success(`Semester ${semester.number} deleted`);
+      addNotification(
+        "Semester Purged",
+        `Semester ${semester.number} and all its records have been removed.`,
+        'success'
+      );
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete semester");
+    }
+  };
+
+  const handleDeleteGrade = async (gradeId: string) => {
+    if (deletingGradeId !== gradeId) {
+      setDeletingGradeId(gradeId);
+      setTimeout(() => setDeletingGradeId(null), 3000);
+      return;
+    }
+
+    try {
+      await semesterService.deleteSubjectGrade(gradeId, semester.id);
+      toast.success("Subject deleted");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete subject");
+    } finally {
+      setDeletingGradeId(null);
+    }
+  };
+
   const gpaColor = semester.gpa >= 8 ? "text-amber-400" : semester.gpa >= 6 ? "text-amber-600/80" : "text-red-400/60";
 
   return (
     <motion.div 
       layout
-      className="glass-card overflow-hidden group"
+      className="glass-card overflow-hidden group/card relative"
     >
+      {/* Delete Option - absolute positioned in corner */}
+      <button 
+        onClick={handleDeleteSemester}
+        className={cn(
+          "absolute top-2 right-2 p-2.5 rounded-xl transition-all z-20 group-hover/card:opacity-100",
+          showDeleteConfirm 
+            ? "bg-red-500 border border-red-500/50 text-white scale-110 opacity-100 shadow-[0_0_15px_rgba(239,68,68,0.3)]" 
+            : "bg-black/40 border border-white/5 text-slate-700 hover:text-red-500/80 hover:bg-red-500/5 hover:border-red-500/10 opacity-40 lg:opacity-0"
+        )}
+        title={showDeleteConfirm ? "Click again to confirm" : "Delete Semester"}
+      >
+        {showDeleteConfirm ? (
+          <span className="text-[8px] font-black uppercase tracking-widest px-1">Confirm</span>
+        ) : (
+          <Trash2 className="w-4 h-4" />
+        )}
+      </button>
+
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
         className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
@@ -243,7 +303,8 @@ function SemesterCard({ semester }: { semester: any }) {
                       <th className="pb-2">Weight</th>
                       <th className="pb-2">Mastery</th>
                       <th className="pb-2">Index</th>
-                      <th className="pb-2 text-right pr-2">Continuity</th>
+                      <th className="pb-2">Continuity</th>
+                      <th className="pb-2 text-right pr-2">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -253,12 +314,46 @@ function SemesterCard({ semester }: { semester: any }) {
                         <td className="py-3 text-slate-500">{grade.credits} Cr</td>
                         <td className="py-3 font-black text-amber-500/60">{grade.grade || "-"}</td>
                         <td className="py-3 font-mono text-slate-400">{grade.gradePoint?.toFixed(1) || "-"}</td>
+                        <td className="py-3">
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await semesterService.markBacklog(grade.id, !grade.hasBacklog);
+                              } catch (error: any) {
+                                toast.error("Failed to update status");
+                              }
+                            }}
+                            className={cn(
+                              "px-2 py-0.5 rounded-full border font-black text-[8px] uppercase tracking-widest transition-all hover:scale-105",
+                              grade.hasBacklog 
+                                ? "bg-red-500/10 border-red-500/20 text-red-400/60 hover:bg-red-500/20" 
+                                : "bg-amber-500/10 border-amber-500/20 text-amber-500/60 hover:bg-amber-500/20"
+                            )}
+                          >
+                            {grade.hasBacklog ? "Backlog" : "Cleared"}
+                          </button>
+                        </td>
                         <td className="py-3 text-right pr-2">
-                          {grade.hasBacklog ? (
-                            <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400/60 font-black text-[8px] uppercase tracking-widest">Broken</span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500/60 font-black text-[8px] uppercase tracking-widest">Fused</span>
-                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteGrade(grade.id);
+                            }}
+                            className={cn(
+                              "p-1.5 rounded-md transition-all",
+                              deletingGradeId === grade.id 
+                                ? "bg-red-500 text-white scale-110 shadow-lg" 
+                                : "hover:bg-red-500/10 text-slate-700 hover:text-red-500/60"
+                            )}
+                            title={deletingGradeId === grade.id ? "Click again to confirm" : "Delete subject"}
+                          >
+                            {deletingGradeId === grade.id ? (
+                              <span className="text-[7px] font-black uppercase px-0.5">Confirm</span>
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -285,8 +380,11 @@ function SemesterCard({ semester }: { semester: any }) {
                         <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Credits</label>
                         <input 
                           type="number" 
-                          value={newGrade.credits}
-                          onChange={(e) => setNewGrade({...newGrade, credits: parseInt(e.target.value)})}
+                          value={isNaN(newGrade.credits) ? "" : newGrade.credits}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            setNewGrade({...newGrade, credits: isNaN(val) ? NaN : val});
+                          }}
                           className="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-200"
                         />
                       </div>
@@ -303,13 +401,35 @@ function SemesterCard({ semester }: { semester: any }) {
                         <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Point</label>
                         <input 
                           type="number" 
-                          value={newGrade.gradePoint}
-                          onChange={(e) => setNewGrade({...newGrade, gradePoint: parseFloat(e.target.value)})}
+                          value={isNaN(newGrade.gradePoint) ? "" : newGrade.gradePoint}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            setNewGrade({...newGrade, gradePoint: isNaN(val) ? NaN : val});
+                          }}
                           className="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-200"
                         />
                       </div>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center gap-3 px-1">
+                    <button
+                      onClick={() => setNewGrade({...newGrade, hasBacklog: !newGrade.hasBacklog})}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest transition-all",
+                        newGrade.hasBacklog 
+                          ? "bg-red-500/20 border-red-500/20 text-red-100 shadow-[0_0_12px_rgba(239,68,68,0.1)]" 
+                          : "bg-white/5 border-white/10 text-slate-500 hover:text-slate-300"
+                      )}
+                    >
+                      <AlertCircle className="w-3 h-3" />
+                      Mark as Backlog
+                    </button>
+                    <span className="text-[8px] text-slate-600 font-black uppercase tracking-widest italic">
+                      {newGrade.hasBacklog ? "Currently failing this subject" : "Subject is cleared"}
+                    </span>
+                  </div>
+
                   <div className="flex gap-2">
                     <button 
                       onClick={() => setIsAddingGrade(false)}

@@ -23,9 +23,11 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  isMobileOpen: boolean;
+  setIsMobileOpen: (open: boolean) => void;
 }
 
-export function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }: SidebarProps) {
+export function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }: SidebarProps) {
   const { userStats } = useStats();
 
   const navItems = [
@@ -49,7 +51,9 @@ export function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }
     <aside 
       className={cn(
         "fixed left-0 top-0 h-full bg-[#050508] border-r border-white/5 transition-all duration-300 z-40 flex flex-col",
-        isCollapsed ? "w-16" : "w-60"
+        isCollapsed ? "w-16" : "w-60",
+        // Mobile behavior
+        isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}
     >
       {/* Logo */}
@@ -121,7 +125,7 @@ export function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }
 
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full flex items-center justify-center py-2 text-[#64748B] hover:text-[#94A3B8] transition-colors"
+          className="hidden lg:flex w-full items-center justify-center py-2 text-[#64748B] hover:text-[#94A3B8] transition-colors"
         >
           {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
         </button>

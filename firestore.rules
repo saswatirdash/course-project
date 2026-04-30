@@ -146,8 +146,9 @@ service cloud.firestore {
     }
 
     function isValidSubjectGrade(data) {
-      return hasRequiredFields(['semesterId', 'subjectName', 'credits', 'hasBacklog']) &&
+      return hasRequiredFields(['semesterId', 'userId', 'subjectName', 'credits', 'hasBacklog']) &&
              data.semesterId is string &&
+             data.userId == request.auth.uid &&
              data.subjectName is string && data.subjectName.size() >= 2 && data.subjectName.size() <= 100 &&
              data.credits is int && data.credits >= 0 && data.credits <= 10 &&
              data.hasBacklog is bool &&
@@ -239,10 +240,10 @@ service cloud.firestore {
     }
 
     match /subjectGrades/{gradeId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
       allow create: if isAuthenticated() && isSemesterOwner(request.resource.data.semesterId) && isValidSubjectGrade(request.resource.data);
-      allow update: if isAuthenticated() && isSemesterOwner(resource.data.semesterId) && isValidSubjectGrade(request.resource.data);
-      allow delete: if isAuthenticated() && isSemesterOwner(resource.data.semesterId);
+      allow update: if isDocOwner() && isSemesterOwner(request.resource.data.semesterId) && isValidSubjectGrade(request.resource.data);
+      allow delete: if isDocOwner() || (isAuthenticated() && isSemesterOwner(resource.data.semesterId));
     }
 
     match /certifications/{certId} {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, Flame, Sparkles } from "lucide-react";
+import { Bell, Flame, Sparkles, Menu, X } from "lucide-react";
 import { useStats } from "../../hooks/useStats";
 import { calculateLevel, getXpProgressPercent } from "../../lib/stats";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,7 +7,17 @@ import { cn } from "../../lib/utils";
 
 import { useNotifications } from "../../hooks/useNotifications";
 
-export function TopNav({ activeTab, isCollapsed }: { activeTab: string; isCollapsed: boolean }) {
+export function TopNav({ 
+  activeTab, 
+  isCollapsed, 
+  isMobileOpen, 
+  setIsMobileOpen 
+}: { 
+  activeTab: string; 
+  isCollapsed: boolean;
+  isMobileOpen: boolean;
+  setIsMobileOpen: (open: boolean) => void;
+}) {
   const { userStats } = useStats();
   const { notifications, clearAll } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -31,9 +41,17 @@ export function TopNav({ activeTab, isCollapsed }: { activeTab: string; isCollap
       "fixed top-0 right-0 left-0 h-16 bg-[#050508]/80 backdrop-blur-2xl border-b border-white/5 z-30 flex items-center justify-between px-6 transition-all duration-300",
       isCollapsed ? "ml-0 lg:ml-16" : "ml-0 lg:ml-60"
     )}>
-      <h1 className="text-xl font-black text-slate-100 font-cursive tracking-wider">
-        {tabTitles[activeTab] || "Sanctuary"}
-      </h1>
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          className="lg:hidden p-2 -ml-2 rounded-xl text-slate-500 hover:text-amber-500 hover:bg-white/5 transition-all"
+        >
+          {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+        <h1 className="text-xl font-black text-slate-100 font-cursive tracking-wider truncate">
+          {tabTitles[activeTab] || "Sanctuary"}
+        </h1>
+      </div>
 
       <div className="flex items-center gap-4">
         {/* Streak */}

@@ -42,7 +42,9 @@ export function DailyTargetCard() {
     }
   };
 
-  const progress = todayLog ? Math.min(100, (todayLog.studyHours / todayLog.targetHours) * 100) : 0;
+  const progress = todayLog && todayLog.targetHours > 0 
+    ? Math.min(100, (todayLog.studyHours / todayLog.targetHours) * 100) 
+    : 0;
 
   return (
     <div className={cn(

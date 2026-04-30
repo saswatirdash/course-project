@@ -2,14 +2,17 @@ import { Rank, BtechYear, SubjectGrade } from "../types";
 import { RANK_THRESHOLDS } from "../constants";
 
 export function calculateLevel(xp: number): number {
+  if (isNaN(xp)) return 0;
   return Math.max(0, Math.floor(xp / 100));
 }
 
 export function getXpToNextLevel(xp: number): number {
+  if (isNaN(xp)) return 100;
   return 100 - (xp % 100);
 }
 
 export function getXpProgressPercent(xp: number): number {
+  if (isNaN(xp)) return 0;
   return xp % 100;
 }
 
@@ -32,22 +35,23 @@ export function getYearLabel(year: BtechYear): string {
 }
 
 export function calculateGPA(grades: SubjectGrade[]): number {
-  if (grades.length === 0) return 0;
+  if (!grades || grades.length === 0) return 0;
   let totalPoints = 0;
   let totalCredits = 0;
   
   grades.forEach(grade => {
-    if (grade.gradePoint !== undefined) {
+    if (grade && grade.gradePoint !== undefined && !isNaN(grade.gradePoint)) {
       totalPoints += (grade.gradePoint * grade.credits);
       totalCredits += grade.credits;
     }
   });
   
-  return totalCredits === 0 ? 0 : Number((totalPoints / totalCredits).toFixed(2));
+  return totalCredits <= 0 ? 0 : Number((totalPoints / totalCredits).toFixed(2));
 }
 
 export function calculateCGPA(semesterGPAs: number[]): number {
-  const validGPAs = semesterGPAs.filter(gpa => gpa > 0);
+  if (!semesterGPAs) return 0;
+  const validGPAs = semesterGPAs.filter(gpa => gpa !== undefined && !isNaN(gpa) && gpa > 0);
   if (validGPAs.length === 0) return 0;
   const sum = validGPAs.reduce((a, b) => a + b, 0);
   return Number((sum / validGPAs.length).toFixed(2));

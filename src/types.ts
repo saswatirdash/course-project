@@ -48,12 +48,16 @@ export interface User {
   image?: string;
   btechYear: BtechYear;
   branch?: string;
+  github?: string;
+  linkedin?: string;
+  twitter?: string;
   lifetimeXp: number;
   balance: number;
   rank: Rank;
   streak: number;
   lastStudyDate?: string; // ISO String
   createdAt: string;
+  updatedAt?: any;
 }
 
 export interface DailyLog {
@@ -109,6 +113,7 @@ export interface Semester {
 export interface SubjectGrade {
   id: string;
   semesterId: string;
+  userId: string;
   subjectName: string;
   credits: number;
   grade?: string;

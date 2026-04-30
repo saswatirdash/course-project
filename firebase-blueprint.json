@@ -102,13 +102,14 @@
       "properties": {
         "id": { "type": "string" },
         "semesterId": { "type": "string" },
+        "userId": { "type": "string" },
         "subjectName": { "type": "string" },
         "credits": { "type": "integer" },
         "grade": { "type": "string" },
         "gradePoint": { "type": "number" },
         "hasBacklog": { "type": "boolean" }
       },
-      "required": ["id", "semesterId", "subjectName", "credits", "hasBacklog"]
+      "required": ["id", "semesterId", "userId", "subjectName", "credits", "hasBacklog"]
     },
     "Certification": {
       "title": "Certification",

@@ -47,3 +47,26 @@ export function useSubjectGrades(semesterId: string | null) {
 
   return { grades, loading };
 }
+
+export function useBacklogs() {
+  const { user } = useAuth();
+  const [backlogs, setBacklogs] = useState<SubjectGrade[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setBacklogs([]);
+      setLoading(false);
+      return;
+    }
+
+    const unsub = semesterService.subscribeToBacklogs(user.uid, (data) => {
+      setBacklogs(data);
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, [user]);
+
+  return { backlogs, loading };
+}
