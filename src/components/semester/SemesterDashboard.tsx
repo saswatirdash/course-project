@@ -241,27 +241,9 @@ function SemesterCard({ semester }: { semester: any }) {
       layout
       className="glass-card overflow-hidden group/card relative"
     >
-      {/* Delete Option - absolute positioned in corner */}
-      <button 
-        onClick={handleDeleteSemester}
-        className={cn(
-          "absolute top-2 right-2 p-2.5 rounded-xl transition-all z-20 group-hover/card:opacity-100",
-          showDeleteConfirm 
-            ? "bg-red-500 border border-red-500/50 text-white scale-110 opacity-100 shadow-[0_0_15px_rgba(239,68,68,0.3)]" 
-            : "bg-black/40 border border-white/5 text-slate-700 hover:text-red-500/80 hover:bg-red-500/5 hover:border-red-500/10 opacity-40 lg:opacity-0"
-        )}
-        title={showDeleteConfirm ? "Click again to confirm" : "Delete Semester"}
-      >
-        {showDeleteConfirm ? (
-          <span className="text-[8px] font-black uppercase tracking-widest px-1">Confirm</span>
-        ) : (
-          <Trash2 className="w-4 h-4" />
-        )}
-      </button>
-
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
+        className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors relative"
       >
         <div className="flex items-center gap-4">
           <div className={cn(
@@ -281,7 +263,26 @@ function SemesterCard({ semester }: { semester: any }) {
             <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Semester GPA</p>
             <p className={cn("text-lg font-black tracking-tighter", gpaColor)}>{semester.gpa?.toFixed(2) || "0.00"}</p>
           </div>
-          <ChevronRight className={cn("w-5 h-5 text-slate-600 transition-transform", isExpanded ? "rotate-90" : "")} />
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleDeleteSemester}
+              className={cn(
+                "p-2 rounded-xl transition-all z-20",
+                showDeleteConfirm 
+                  ? "bg-red-500 border border-red-500/50 text-white scale-105 shadow-[0_0_15px_rgba(239,68,68,0.3)]" 
+                  : "bg-white/5 border border-white/5 text-slate-700 hover:text-red-500/80 hover:bg-red-500/5 hover:border-red-500/10"
+              )}
+              title={showDeleteConfirm ? "Click again to confirm" : "Delete Semester"}
+            >
+              {showDeleteConfirm ? (
+                <span className="text-[8px] font-black uppercase tracking-widest px-1">Confirm</span>
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+            </button>
+            <ChevronRight className={cn("w-5 h-5 text-slate-600 transition-transform", isExpanded ? "rotate-90" : "")} />
+          </div>
         </div>
       </div>
 

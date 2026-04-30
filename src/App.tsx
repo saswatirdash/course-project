@@ -493,34 +493,34 @@ export default function App() {
                       </div>
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">GitHub</label>
+                          <div className="space-y-1 group">
+                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest pl-1 group-focus-within:text-white transition-colors">GitHub</label>
                             <input 
                               type="text"
                               value={profileForm.github}
                               onChange={(e) => setProfileForm(prev => ({ ...prev, github: e.target.value }))}
                               placeholder="username"
-                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-500/30 transition-all"
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-white/30 focus:bg-white/10 transition-all font-bold text-slate-200"
                             />
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">LinkedIn</label>
+                          <div className="space-y-1 group">
+                            <label className="text-[10px] font-black text-[#0077b5]/50 uppercase tracking-widest pl-1 group-focus-within:text-[#0077b5] transition-colors">LinkedIn</label>
                             <input 
                               type="text"
                               value={profileForm.linkedin}
                               onChange={(e) => setProfileForm(prev => ({ ...prev, linkedin: e.target.value }))}
                               placeholder="profile-slug"
-                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-500/30 transition-all"
+                              className="w-full bg-[#0077b5]/5 border border-[#0077b5]/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-[#0077b5]/40 focus:bg-[#0077b5]/10 transition-all font-bold text-slate-200"
                             />
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Twitter/X</label>
+                          <div className="space-y-1 group">
+                            <label className="text-[10px] font-black text-[#1DA1F2]/50 uppercase tracking-widest pl-1 group-focus-within:text-[#1DA1F2] transition-colors">Twitter/X</label>
                             <input 
                               type="text"
                               value={profileForm.twitter}
                               onChange={(e) => setProfileForm(prev => ({ ...prev, twitter: e.target.value }))}
                               placeholder="@handle"
-                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-amber-500/30 transition-all"
+                              className="w-full bg-[#1DA1F2]/5 border border-[#1DA1F2]/10 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-[#1DA1F2]/40 focus:bg-[#1DA1F2]/10 transition-all font-bold text-slate-200"
                             />
                           </div>
                         </div>
